@@ -43,9 +43,10 @@ def add_image_dict(filename, height, width, image_id):
     return image_dict
 
 
-def add_annotation_dict(bbox, image_id):
+def add_annotation_dict(bbox, image_id, id):
     x, y, h, w = bbox
     annotation_dict = {
+      "id": id,
       "segmentation": [], 
       "area": 0, 
       "iscrowd": 0, 
@@ -72,8 +73,8 @@ def parse_csv2coco(file_path: str, csv_path: str):
         image_dict = add_image_dict(filename, height, width, idx)
         images_list.append(image_dict)
 
-        for bbox in bboxes:
-            annotation_dict = add_annotation_dict(bbox, idx)
+        for i, bbox in enumerate(bboxes):
+            annotation_dict = add_annotation_dict(bbox, idx, i)
             annotations_list.append(annotation_dict)
             
     info_dict = add_info_dict()

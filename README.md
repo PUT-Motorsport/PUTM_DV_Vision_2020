@@ -17,5 +17,5 @@ python parsers/csv2yolo_parser.py --csv_path <PATH TO CSV FILES DIRECTORY> --dat
 
 ### COCO dataset format
 ```python
-python parsers/csv2yolo_parser.py --file_path <PATH TO DIRECTORY FOR ANNOTATION FILES> --csv_path <PATH TO CSV FILES DIRECTORY>
+python parsers/csv2coco_parser.py --file_path <PATH TO DIRECTORY FOR ANNOTATION FILES> --csv_path <PATH TO CSV FILES DIRECTORY>
 ```
