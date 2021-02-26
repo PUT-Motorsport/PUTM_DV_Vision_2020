@@ -63,6 +63,8 @@ def parse_csv2coco(file_path: str, csv_path: str):
     images_list = []
     annotations_list = []
 
+    annotation_index = 0
+
     for idx, row in tqdm(enumerate(df.iterrows())):
         filename = row[1][0]
         width = int(row[1][2])
@@ -73,9 +75,10 @@ def parse_csv2coco(file_path: str, csv_path: str):
         image_dict = add_image_dict(filename, height, width, idx)
         images_list.append(image_dict)
 
-        for i, bbox in enumerate(bboxes):
-            annotation_dict = add_annotation_dict(bbox, idx, i)
+        for bbox in bboxes:
+            annotation_dict = add_annotation_dict(bbox, idx, annotation_index)
             annotations_list.append(annotation_dict)
+            annotation_index+=1
             
     info_dict = add_info_dict()
     categories_list = add_categories_list()
