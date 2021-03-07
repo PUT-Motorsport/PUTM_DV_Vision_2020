@@ -48,7 +48,7 @@ def add_annotation_dict(bbox, image_id, id):
     annotation_dict = {
       "id": id,
       "segmentation": [], 
-      "area": 0, 
+      "area": h*w, 
       "iscrowd": 0, 
       "image_id": image_id, 
       "bbox": [x, y, w, h], 
