@@ -20,7 +20,7 @@ Powyższe repo wymaga protobuf, od razu też instalujemy onnx. Instalacja protob
 [jetson_nano](https://github.com/jkjung-avt/jetson_nano) i ruchomić skrypt ./install_protobuf-3.8.0.sh.
 ```
 pip3 install protobuf
-sudo pip3 install onnx==1.4.1
+pip3 install onnx==1.4.1
 ```
 
 Przechodzimy do katalogu plugins i robimy make
