@@ -17,7 +17,7 @@ sudo apt-get install python3-pip
 ```
 
 Powyższe repo wymaga protobuf, od razu też instalujemy onnx. Instalacja protobuff w ten sposób trwa bardzo długo, można też skorzystać z repo:
-[jetson_nano]{https://github.com/jkjung-avt/jetson_nano} i ruchomić skrypt ./install_protobuf-3.8.0.sh.
+[jetson_nano](https://github.com/jkjung-avt/jetson_nano) i ruchomić skrypt ./install_protobuf-3.8.0.sh.
 ```
 pip3 install protobuf
 sudo pip3 install onnx==1.4.1
