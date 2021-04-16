@@ -18,52 +18,10 @@ class ImageInference:
         self.detector = ConeDetector()
         self.classifier = ConeClassifier()
         self.pose_estimator = ConePoseEstimator()
-
-        rp.Subscriber("/fsds/camera/cam1", Image, self.right_camera_image_callback) # right camera
-        rp.Subscriber("/fsds/camera/cam2", Image, self.left_camera_image_callback) # left camera
-
-        self.inferenced_img_pub = rp.Publisher("/putm/vision/inferenced_image", Image, queue_size=100)
-        self.yellow_cones_position_publisher = rp.Publisher('/putm/vision/yellow_cones_position', PoseArray, queue_size=10)
-        self.blue_cones_position_publisher = rp.Publisher('/putm/vision/blue_cones_position', PoseArray, queue_size=10)
-
-        self.image_width = rp.get_param('/sensors/camera_config/image_width') # px
-
-        self.colors = [(0,0,255), (0,255,255), (255,0,0)] # [red, yellow, blue] in BGR format
-
-        self.inference_step = 2
-        self.frame = 0
-
-
-    def right_camera_image_callback(self, data: Image):
-        self.right_img = np.frombuffer(data.data, dtype=np.uint8).reshape(data.height, data.width, -1)
-
-
-    def left_camera_image_callback(self, data: Image):
-        left_img = np.frombuffer(data.data, dtype=np.uint8).reshape(data.height, data.width, -1)
-        self.frame += 1
-
-        if self.frame % self.inference_step == 0:
-            self.inference(left_img, self.right_img)
-
+        
 
     def inference(self, left_img: np.ndarray, right_img: np.ndarray):
-        boxes = self.detector.predict(left_img)
-
-        if len(boxes) >= 1:
-            cone_rois = [left_img[box[1]:box[1]+box[3], box[0]:box[0]+box[2], ::-1] for box in boxes]
-            cone_lines = [
-                right_img[box[1]-int(0.25*box[3]):box[1]+int(1.25*box[3]), 
-                        max(0, box[0]-4*box[2]):min(self.image_width, box[0]+box[2]+4*box[2]), ::-1] for box in boxes]
-
-            cone_colors = self.classifier.predict(cone_rois)
-            cone_poses = self.pose_estimator.estimate_cones_poses(cone_rois, cone_lines, boxes)
-
-            cones = list(filter(lambda x: x[1] is not None, zip(cone_colors, cone_poses)))
-            yellow_cones = [cone[1] for cone in cones if cone[0] == 1]
-            blue_cones = [cone[1] for cone in cones if cone[0] == 2]
-
-            self.publish_cones_position_color_arrays(yellow_cones, blue_cones)
-            self.publish_inferenced_img(left_img, boxes, cone_colors)
+        pass
 
 
     def publish_cones_position(self, yellow_cones, blue_cones):
