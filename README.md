@@ -1,7 +1,7 @@
 # ROS Simulator
 ROS implementation of vision node for Formula Student Driverless Simulator.
 
-![detected_cones](./imgs/detected_cones.png)
+![detected_cones](./images/detected_cones.png)
 
 ## Clone repository
 ```bash
