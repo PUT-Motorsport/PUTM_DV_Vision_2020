@@ -62,7 +62,7 @@ class ImageInference:
             yellow_cones = [cone[1] for cone in cones if cone[0] == 1]
             blue_cones = [cone[1] for cone in cones if cone[0] == 2]
 
-            self.publish_cones_position_color_arrays(yellow_cones, blue_cones)
+            self.publish_cones_position(yellow_cones, blue_cones)
             self.publish_inferenced_img(left_img, boxes, cone_colors)
 
 
