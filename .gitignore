@@ -380,4 +380,7 @@ CATKIN_IGNORE
 .history
 .ionide
 
+### Update
+yolo/
+
 # End of https://www.toptal.com/developers/gitignore/api/ros,macos,linux,python,visualstudiocode,jupyternotebooks,c++,c,kicad
