@@ -6,12 +6,13 @@ import rospy as rp
 import numpy as np
 
 from sensor_msgs.msg import Image
-from geometry_msgs.msg import PoseArray
+from geometry_msgs.msg import PoseArray, Pose
 import message_filters
 
 from cone_detector import ConeDetector
 from cone_classifier import ConeClassifier
 from cone_pose_estimator import ConePoseEstimator
+from mono_pose_estimator import ConeMonoEstimator
 
 
 class ImageInference:
@@ -19,16 +20,19 @@ class ImageInference:
         self.detector = ConeDetector()
         self.classifier = ConeClassifier()
         self.pose_estimator = ConePoseEstimator()
+        self.mono_estimator = ConeMonoEstimator()
 
         right_sub = message_filters.Subscriber("/fsds/camera/cam1", Image) # right camera
         left_sub = message_filters.Subscriber("/fsds/camera/cam2", Image) # left camera
+        mono_sub = message_filters.Subscriber("/fsds/camera/cam_mono", Image) # mono camera
 
-        ts = message_filters.ApproximateTimeSynchronizer([right_sub, left_sub], queue_size=5, slop=0.1)
+        ts = message_filters.ApproximateTimeSynchronizer([right_sub, left_sub, mono_sub], queue_size=5, slop=0.1)
         ts.registerCallback(self.camera_image_callback)
 
         self.inferenced_img_pub = rp.Publisher("/putm/vision/inferenced_image", Image, queue_size=100)
         self.yellow_cones_position_publisher = rp.Publisher('/putm/vision/yellow_cones_position', PoseArray, queue_size=10)
         self.blue_cones_position_publisher = rp.Publisher('/putm/vision/blue_cones_position', PoseArray, queue_size=10)
+        self.mono_cones_position_publisher = rp.Publisher('/putm/vision/mono_cones_position', PoseArray, queue_size=10)
 
         self.image_width = rp.get_param('/sensors/camera_config/image_width') # px
 
@@ -38,13 +42,36 @@ class ImageInference:
         self.frame = 0
 
 
-    def camera_image_callback(self, right_img_data: Image, left_img_data: Image):
+    def camera_image_callback(self, right_img_data: Image, left_img_data: Image, mono_img_data):
         right_img = np.frombuffer(right_img_data.data, dtype=np.uint8).reshape(right_img_data.height, right_img_data.width, -1)
         left_img = np.frombuffer(left_img_data.data, dtype=np.uint8).reshape(left_img_data.height, left_img_data.width, -1)
+        mono_img = np.frombuffer(mono_img_data.data, dtype=np.uint8).reshape(mono_img_data.height, mono_img_data.width, -1)
         self.frame += 1
 
         if self.frame % self.inference_step == 0:
             self.inference(left_img, right_img)
+            self.mono_camera_inference(mono_img)
+
+    def mono_camera_inference(self, img: np.ndarray): 
+        
+        boxes = np.array(self.detector.predict(img))
+
+        tvecs = self.mono_estimator.predict(boxes, img)
+
+        cones = []
+        for cone in tvecs:
+            pose = Pose()
+            pose.position.x = np.negative(cone[1])
+            pose.position.y = np.negative(cone[0])
+            pose.position.z = 0.0
+
+            cones.append(pose)
+
+        mono_pose_array = PoseArray()
+        mono_pose_array.header.stamp = rp.Time.now()
+        mono_pose_array.header.frame_id = 'putm/cones_poses'
+        mono_pose_array.poses = cones
+        self.mono_cones_position_publisher.publish(mono_pose_array)
 
 
     def inference(self, left_img: np.ndarray, right_img: np.ndarray):

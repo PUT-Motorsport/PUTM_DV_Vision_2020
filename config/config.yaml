@@ -13,6 +13,10 @@ sensors:
     FOV: 90 # degrees
     base: 120 # mm
     image_width: 785 # px
+
+  mono_config:
+    FOV: 90
+    image_width: 1280
   
   # vision system models
   vision:
@@ -25,3 +29,6 @@ sensors:
     squeezenet:
       squeezenet_model_path: '/home/ue4/Formula-Student-Driverless-Simulator/ros/src/putm_dv_vision/data/cone_clf_model/'
       model_input_shape: [40,28]
+    rektnet:
+      model: '/home/ue4/Formula-Student-Driverless-Simulator/ros/src/putm_dv_vision/data/rektnet.onnx'
+      size: 80
