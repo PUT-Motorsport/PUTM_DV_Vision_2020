@@ -7,6 +7,7 @@ import numpy as np
 
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import PoseArray
+import message_filters
 
 from cone_detector import ConeDetector
 from cone_classifier import ConeClassifier
@@ -19,8 +20,11 @@ class ImageInference:
         self.classifier = ConeClassifier()
         self.pose_estimator = ConePoseEstimator()
 
-        rp.Subscriber("/fsds/camera/cam1", Image, self.right_camera_image_callback) # right camera
-        rp.Subscriber("/fsds/camera/cam2", Image, self.left_camera_image_callback) # left camera
+        right_sub = message_filters.Subscriber("/fsds/camera/cam1", Image) # right camera
+        left_sub = message_filters.Subscriber("/fsds/camera/cam2", Image) # left camera
+
+        ts = message_filters.ApproximateTimeSynchronizer([right_sub, left_sub], queue_size=5, slop=0.1)
+        ts.registerCallback(self.camera_image_callback)
 
         self.inferenced_img_pub = rp.Publisher("/putm/vision/inferenced_image", Image, queue_size=100)
         self.yellow_cones_position_publisher = rp.Publisher('/putm/vision/yellow_cones_position', PoseArray, queue_size=10)
@@ -34,16 +38,13 @@ class ImageInference:
         self.frame = 0
 
 
-    def right_camera_image_callback(self, data: Image):
-        self.right_img = np.frombuffer(data.data, dtype=np.uint8).reshape(data.height, data.width, -1)
-
-
-    def left_camera_image_callback(self, data: Image):
-        left_img = np.frombuffer(data.data, dtype=np.uint8).reshape(data.height, data.width, -1)
+    def camera_image_callback(self, right_img_data: Image, left_img_data: Image):
+        right_img = np.frombuffer(right_img_data.data, dtype=np.uint8).reshape(right_img_data.height, right_img_data.width, -1)
+        left_img = np.frombuffer(left_img_data.data, dtype=np.uint8).reshape(left_img_data.height, left_img_data.width, -1)
         self.frame += 1
 
         if self.frame % self.inference_step == 0:
-            self.inference(left_img, self.right_img)
+            self.inference(left_img, right_img)
 
 
     def inference(self, left_img: np.ndarray, right_img: np.ndarray):
