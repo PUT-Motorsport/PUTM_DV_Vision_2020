@@ -5,25 +5,43 @@ import time
 import yaml
 import numpy as np
 import rospy as rp
+import argparse
 
 import cv2 
 import pycuda.autoinit
 
-from utils.yolo_classes import get_cls_dict
 from utils.camera import add_camera_args, Camera
 from utils.display import open_window, set_display, show_fps
 from utils.visualization import BBoxVisualization
 from utils.yolo_with_plugins import get_input_shape, TrtYOLO
 
+WINDOW_NAME = "Test"
+
 class ConeDetectorTRT:
     def __init__(self):
+        parser = argparse.ArgumentParser()
         self.model = "yolov4-tiny-416"
-        self.h, self.w = get_input_shape(self.model)
-        self.trt_yolo = (self.model, (self.h, self.w), 1, False)
+        if not os.path.isfile('yolo/%s.trt' % self.model):
+            raise SystemExit('ERROR: file (yolo/%s.trt) not found!' % self.model)
+
+        h, w = get_input_shape(self.model)
+        cls_dict = ["Cone"]
+        vis = BBoxVisualization(cls_dict)
+        trt_yolo = TrtYOLO(self.model, (h, w), 1, False)
 
         # self.cam = add_camera_args(/dev/video1)
-        self.cam = add_camera_args
+        parser = add_camera_args(parser)
+        args = parser.parse_args()
+        self.cam = Camera(args)
+        if not self.cam.isOpened():
+            raise SystemExit('ERROR: failed to open camera!')
 
+        open_window(
+            WINDOW_NAME, 'Camera TensorRT YOLO Demo',
+            self.cam.img_width, self.cam.img_height)
+        self.loop_and_detect(self.cam, trt_yolo, conf_th=0.3, vis=vis)
+        self.cam.release()
+        cv2.destroyAllWindows()
         
     def loop_and_detect(self, cam, trt_yolo, conf_th, vis):
         """Continuously capture images from camera and do object detection.
@@ -59,28 +77,5 @@ class ConeDetectorTRT:
                 full_scrn = not full_scrn
                 set_display(WINDOW_NAME, full_scrn)
 
-if __name__ = '__main__':
-    args = parse_args()
-    if args.category_num <= 0:
-        raise SystemExit('ERROR: bad category_num (%d)!' % args.category_num)
-    if not os.path.isfile('yolo/%s.trt' % args.model):
-        raise SystemExit('ERROR: file (yolo/%s.trt) not found!' % args.model)
-
-    cam = Camera(args)
-    if not cam.isOpened():
-        raise SystemExit('ERROR: failed to open camera!')
-
-    cls_dict = get_cls_dict(args.category_num)
-    vis = BBoxVisualization(cls_dict)
-    h, w = get_input_shape(args.model)
-    trt_yolo = TrtYOLO(args.model, (h, w), args.category_num, args.letter_box)
-
-    open_window(
-        WINDOW_NAME, 'Camera TensorRT YOLO Demo',
-        cam.img_width, cam.img_height)
-    loop_and_detect(cam, trt_yolo, conf_th=0.3, vis=vis)
-
-    cam.release()
-    cv2.destroyAllWindows()
+if __name__ == '__main__':
     detect = ConeDetectorTRT()
-
