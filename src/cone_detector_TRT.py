@@ -2,7 +2,6 @@
 
 import os 
 import time
-import yaml
 import numpy as np
 import rospy as rp
 import argparse
@@ -20,7 +19,7 @@ WINDOW_NAME = "Test"
 class ConeDetectorTRT:
     def __init__(self):
         parser = argparse.ArgumentParser()
-        self.model = "yolov4-tiny-416"
+        self.model = "yolov4-tiny-608"
         if not os.path.isfile('yolo/%s.trt' % self.model):
             raise SystemExit('ERROR: file (yolo/%s.trt) not found!' % self.model)
 
@@ -32,15 +31,16 @@ class ConeDetectorTRT:
         # self.cam = add_camera_args(/dev/video1)
         parser = add_camera_args(parser)
         args = parser.parse_args()
-        self.cam = Camera(args)
-        if not self.cam.isOpened():
+        cam = Camera(args)
+        if not cam.isOpened():
             raise SystemExit('ERROR: failed to open camera!')
 
-        open_window(
-            WINDOW_NAME, 'Camera TensorRT YOLO Demo',
-            self.cam.img_width, self.cam.img_height)
-        self.loop_and_detect(self.cam, trt_yolo, conf_th=0.3, vis=vis)
-        self.cam.release()
+        #  open_window(
+            #  WINDOW_NAME, 'Camera TensorRT YOLO Demo',
+            #  cam.img_width, cam.img_height)
+        #  self.loop_and_detect(cam, trt_yolo, conf_th=0.3, vis=vis)
+        self.predict(cam, trt_yolo, conf_th=0.3)
+        cam.release()
         cv2.destroyAllWindows()
         
     def loop_and_detect(self, cam, trt_yolo, conf_th, vis):
@@ -77,5 +77,24 @@ class ConeDetectorTRT:
                 full_scrn = not full_scrn
                 set_display(WINDOW_NAME, full_scrn)
 
+    def predict(self, cam, trt_yolo, conf_th: float):
+        """ This needs to be changed to something that is returning
+            the boxes array so it can be used in the pipeline
+        """
+        fps = 0.0
+        tic = time.time()
+        while True:
+            img = cam.read()
+            if img is None:
+                break
+            boxes, confs, clss = trt_yolo.detect(img, conf_th)
+            toc = time.time()
+            curr_fps = 1.0 / (toc - tic)
+            # calculate an exponentially decaying average of fps number
+            fps = curr_fps if fps == 0.0 else (fps*0.95 + curr_fps*0.05)
+            tic = toc
+            print(fps)
+            #  print(boxes)
+            
 if __name__ == '__main__':
     detect = ConeDetectorTRT()
