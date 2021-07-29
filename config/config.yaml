@@ -1,27 +1,26 @@
-# Autonomous system constatns
-vehicle:
-  max_throttle: 0.4 # m/s^2
-  target_speed: 6 # m/s
-  max_steering: 0.5
-
-sensors:
-  cones_range_cutoff: 8 # meters
-
-  camera_config:
+# sensor config
+camera_config:
     X_offset: -300 # mm
     Y_offset: 60 # mm
     FOV: 90 # degrees
-    base: 120 # mm
+    image_height: 785 # px
     image_width: 785 # px
   
-  # vision system models
-  vision:
+# vision neural network models
+models:
+    # object detector
     yolo:
-      yolo_weights_file: '/home/ue4/Formula-Student-Driverless-Simulator/ros/src/fsds_utils/data/yolov4-tiny_dv_final.weights'
-      yolo_config_file: '/home/ue4/Formula-Student-Driverless-Simulator/ros/src/fsds_utils/data/yolov4-tiny_dv.cfg'
-      confidence_threshold: 0.5
-      nms_threshold: 0.3
-      model_size: 416
-    squeezenet:
-      squeezenet_model_path: '/home/ue4/Formula-Student-Driverless-Simulator/ros/src/fsds_utils/data/squeezenet/'
-      model_input_shape: [40,28]
+        opencv:
+            yolo_weights_file: '/home/putm/dv_ws/src/putm_dv_vision/config/yolov4-tiny_608-3l_dv_final.weights'
+            yolo_config_file: '/home/putm/dv_ws/src/putm_dv_vision/config/yolov4-tiny_608-3l_dv.cfg'
+            confidence_threshold: 0.5
+            nms_threshold: 0.3
+            model_size: 416
+        tensorrt:
+            model_path: '/home/putm/dv_ws/src/putm_dv_vision/config/yolov4.trt'
+    # 2D to 3D projection
+    rektnet:
+        onnx:
+            model_path: '/home/putm/dv_ws/src/putm_dv_vision/config/rektnet.onnx'
+        tensorrt:
+            model_path: '/home/putm/dv_ws/src/putm_dv_vision/config/rektnet.trt'

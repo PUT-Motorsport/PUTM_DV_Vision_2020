@@ -1,11 +1,9 @@
 <?xml version="1.0"?>
 
 <launch>
-    <rosparam command="load" file="$(find fsds_utils)/config/config.yaml" />
+    <rosparam command="load" file="$(find putm_dv_vision)/config/config.yaml" />
 
     <group ns="vision_node">
-        <node name="vision" pkg="fsds_utils" type="vision.py" output="screen" />
+        <node name="vision_mono" pkg="putm_dv_vision" type="vision_mono.py" output="screen" />
     </group>
-
-    <!-- <node type="rviz" name="rviz" pkg="rviz" args="-d $(find fsds_utils)/rviz/rviz_config.rviz" /> -->
 </launch>
