@@ -161,21 +161,16 @@ class ConePoseEstimator:
         List[Pose]
             List with cones poses.
         """
-        boxes = np.array(boxes)
 
-        boxes_points = []
+        cone_lines = []
         for box in boxes:
-            boxes_points.append(
-                np.array([
+            box_points = np.array([
                     (box[0], box[1]),
                     (box[0] + box[2], box[1]),
                     (box[0], box[1] + box[3]),
                     (box[0] + box[2], box[1] + box[3])
                 ], dtype="double")
-            )
 
-        right_boxes = []
-        for box_points in boxes_points:
             tvec = cv2.solvePnP(
                 objectPoints = self.box_model,
                 imagePoints = box_points,
@@ -191,13 +186,12 @@ class ConePoseEstimator:
                 (box_points[2][0] - d[0], box_points[2][1]),
                 (box_points[3][0] - d[0], box_points[3][1])
             ]
-            right_boxes.append(right_box)
-        cone_lines = [
-            right_img[
-                max(0, int(r_box[0][1])):min(self.image_height, int(r_box[2][1])),
-                max(0, int(r_box[0][0])):min(self.image_width, int(r_box[1][0])),
-                ::-1
-            ]
-            for r_box in right_boxes]
+
+            cone_lines.append(
+                right_img[
+                    max(0, int(right_box[0][1])):min(self.image_height, int(right_box[2][1])),
+                    max(0, int(right_box[0][0])):min(self.image_width, int(right_box[1][0])),
+                    ::-1
+                ])
 
         return cone_lines
