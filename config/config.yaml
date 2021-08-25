@@ -13,6 +13,7 @@ sensors:
     FOV: 90 # degrees
     base: 120 # mm
     image_width: 785 # px
+    image_height: 785 # px
 
   mono_config:
     FOV: 90

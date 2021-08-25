@@ -52,6 +52,7 @@ class ImageInference:
             self.inference(left_img, right_img)
             self.mono_camera_inference(mono_img)
 
+
     def mono_camera_inference(self, img: np.ndarray): 
         
         boxes = np.array(self.detector.predict(img))
@@ -79,12 +80,9 @@ class ImageInference:
 
         if len(boxes) >= 1:
             cone_rois = [left_img[box[1]:box[1]+box[3], box[0]:box[0]+box[2], ::-1] for box in boxes]
-            cone_lines = [
-                right_img[box[1]-int(0.25*box[3]):box[1]+int(1.25*box[3]), 
-                        max(0, box[0]-4*box[2]):min(self.image_width, box[0]+box[2]+4*box[2]), ::-1] for box in boxes]
 
             cone_colors = self.classifier.predict(cone_rois)
-            cone_poses = self.pose_estimator.estimate_cones_poses(cone_rois, cone_lines, boxes)
+            cone_poses = self.pose_estimator.estimate_cones_poses(cone_rois, right_img, boxes)
 
             cones = list(filter(lambda x: x[1] is not None, zip(cone_colors, cone_poses)))
             yellow_cones = [cone[1] for cone in cones if cone[0] == 1]

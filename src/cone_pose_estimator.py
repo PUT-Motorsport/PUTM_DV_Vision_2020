@@ -19,8 +19,25 @@ class ConePoseEstimator:
         self.FOV = rp.get_param('/sensors/camera_config/FOV') # degrees
         self.base = rp.get_param('/sensors/camera_config/base') # mm
         self.image_width = rp.get_param('/sensors/camera_config/image_width') # px
+        self.image_height = rp.get_param('/sensors/camera_config/image_height') # px
+        self.center = (self.image_width/2, self.image_width/2)
         
         self.focal_length = (self.image_width / 2) / np.tan(self.FOV/2 * np.pi / 180)
+
+        self.box_model = np.array([
+            [0.0,  0.114, 0.325],
+            [0.0, -0.114, 0.325],
+            [0.0,  0.114, 0.0],
+            [0.0, -0.114, 0.0]
+        ], dtype = "double")
+
+        self.camera_matrix = np.array([
+            [self.focal_length, 0, self.center[0]],
+            [0, self.focal_length, self.center[1]],
+            [0, 0, 1]
+        ], dtype = "double")
+
+        self.dist_coeffs = np.zeros((4,1))
 
 
     def calculate_coord_in_right_img(self, cone_roi: np.ndarray, cone_line: np.ndarray, box: List[int], matches_num=5) -> Pose:
@@ -49,7 +66,15 @@ class ConePoseEstimator:
         if des1 is None or des2 is None:
             return None
 
-        matches = self.bf.match(des1, des2)
+        knn_matches = self.bf.knnMatch(des1, des2, k=2)
+        matches = []
+        for m in knn_matches:
+            if len(m) > 1:
+                if m[0].distance < m[1].distance * 0.75:
+                    matches.append(m[0])
+            else:
+                matches.append(m[0])
+
         if len(matches) < 1:
             return None
 
@@ -84,7 +109,7 @@ class ConePoseEstimator:
         pose = Pose()
         
         u = self.image_width/2 - (x + w/2)
-        v = self.image_width - (y + h/2)
+        v = self.image_height - (y + h/2)
         
         X = (self.focal_length * self.base / disparity - self.X_offset) / 1000 # m
         Y = X * u / v
@@ -97,15 +122,15 @@ class ConePoseEstimator:
         return pose
     
 
-    def estimate_cones_poses(self, cone_rois: np.ndarray, cone_lines: np.ndarray, boxes: np.ndarray) -> List[Pose]:
+    def estimate_cones_poses(self, cone_rois: np.ndarray, right_img: np.ndarray, boxes: np.ndarray) -> List[Pose]:
         """Estimates cones position in local racecar space.
 
         Parameters
         ----------
         cone_rois : np.ndarray
             Array with detected cones ROI on left image.
-        cone_lines : np.ndarray
-            Parts of right image corresponding to extended ROI coordinates.
+        right_img : np.ndarray
+            Image from right camera.
         boxes : np.ndarray
             Array with detection coordinates for each detected cone.
 
@@ -114,8 +139,59 @@ class ConePoseEstimator:
         List[Pose]
             List with cones poses.
         """
+        cone_lines = self.propagate_bounding_boxes(boxes, right_img)
         cone_poses = [
             self.calculate_coord_in_right_img(cone_roi, cone_line, box) 
             for (cone_roi, cone_line, box) in zip(cone_rois, cone_lines, boxes)]
         
         return cone_poses
+
+    def propagate_bounding_boxes(self, boxes: np.ndarray, right_img: np.ndarray) -> np.ndarray:
+        """Propagates bounding boxes to right image.
+
+        Parameters
+        ----------
+        boxes : np.ndarray
+            Array with detection coordinates for each detected cone.
+        right_img : np.ndarray
+            Image from right camera.
+
+        Returns
+        -------
+        List[Pose]
+            List with cones poses.
+        """
+
+        cone_lines = []
+        for box in boxes:
+            box_points = np.array([
+                    (box[0], box[1]),
+                    (box[0] + box[2], box[1]),
+                    (box[0], box[1] + box[3]),
+                    (box[0] + box[2], box[1] + box[3])
+                ], dtype="double")
+
+            tvec = cv2.solvePnP(
+                objectPoints = self.box_model,
+                imagePoints = box_points,
+                cameraMatrix = self.camera_matrix, 
+                distCoeffs = self.dist_coeffs,
+                flags=cv2.SOLVEPNP_ITERATIVE
+            )[2]
+            d = (0.12 * self.focal_length) / tvec[2]
+
+            right_box = [
+                (box_points[0][0] - d[0], box_points[0][1]),
+                (box_points[1][0] - d[0], box_points[1][1]),
+                (box_points[2][0] - d[0], box_points[2][1]),
+                (box_points[3][0] - d[0], box_points[3][1])
+            ]
+
+            cone_lines.append(
+                right_img[
+                    max(0, int(right_box[0][1])):min(self.image_height, int(right_box[2][1])),
+                    max(0, int(right_box[0][0])):min(self.image_width, int(right_box[1][0])),
+                    ::-1
+                ])
+
+        return cone_lines
