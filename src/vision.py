@@ -33,6 +33,7 @@ class ImageInference:
         self.yellow_cones_position_publisher = rp.Publisher('/putm/vision/yellow_cones_position', PoseArray, queue_size=10)
         self.blue_cones_position_publisher = rp.Publisher('/putm/vision/blue_cones_position', PoseArray, queue_size=10)
         self.mono_cones_position_publisher = rp.Publisher('/putm/vision/mono_cones_position', PoseArray, queue_size=10)
+        self.road_middle_poses_publisher = rp.Publisher('/putm/vision/road_middle_poses', PoseArray, queue_size=10)
 
         self.image_width = rp.get_param('/sensors/camera_config/image_width') # px
 
@@ -90,8 +91,39 @@ class ImageInference:
             yellow_cones = [cone[1] for cone in cones if cone[0] == 1]
             blue_cones = [cone[1] for cone in cones if cone[0] == 2]
 
+            road_middle_poses = self.calculate_road_middle_poses(blue_cones, yellow_cones)
+
+            self.publish_road_middle_positions(road_middle_poses)
             self.publish_cones_position(yellow_cones, blue_cones)
             self.publish_inferenced_img(left_img, boxes, cone_colors)
+
+    
+    def calculate_road_middle_poses(self, blue_cones, yellow_cones):
+        length = len(blue_cones) if len(blue_cones) < len(yellow_cones) else len(yellow_cones)
+
+        positions = []
+        for i in range(length):
+            blue_cone = blue_cones[i]
+            yellow_cone = yellow_cones[i]
+           
+            pos = Pose()
+
+            pos.position.x = (blue_cone.position.x + yellow_cone.position.x) / 2
+            pos.position.y = (blue_cone.position.y + yellow_cone.position.y) / 2
+            pos.position.z = (blue_cone.position.z + yellow_cone.position.z) / 2
+
+            positions.append(pos)
+        return positions
+
+    def publish_road_middle_positions(self, road_middle_poses):
+        road_middle_poses_msg = PoseArray()
+
+        road_middle_poses_msg.header.stamp = rp.Time.now()
+        road_middle_poses_msg.header.frame_id = 'putm/cones_poses'
+        road_middle_poses_msg.poses = road_middle_poses
+
+        self.road_middle_poses_publisher.publish(road_middle_poses_msg)
+
 
 
     def publish_cones_position(self, yellow_cones, blue_cones):

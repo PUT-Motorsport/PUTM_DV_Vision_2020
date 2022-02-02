@@ -24,7 +24,7 @@ class ConePoseEstimator:
 
 
     def calculate_coord_in_right_img(self, cone_roi: np.ndarray, cone_line: np.ndarray, box: List[int], matches_num=5) -> Pose:
-        """Calculates coordinates of conein right image based on coordinates of cone detected in left image.
+        """Calculates coordinates of cone in right image based on coordinates of cone detected in left image.
 
         Parameters
         ----------
@@ -43,6 +43,9 @@ class ConePoseEstimator:
             Cone pose in space.
         """
         x, _, w, _ = box
+        if cone_roi is None or cone_line is None:
+            return None
+
         kp1, des1 = self.sift.detectAndCompute(cv2.cvtColor(cone_roi, cv2.COLOR_BGR2GRAY), None)
         kp2, des2 = self.sift.detectAndCompute(cv2.cvtColor(cone_line, cv2.COLOR_BGR2GRAY), None)
 
@@ -115,7 +118,7 @@ class ConePoseEstimator:
             List with cones poses.
         """
         cone_poses = [
-            self.calculate_coord_in_right_img(cone_roi, cone_line, box) 
+            self.calculate_coord_in_right_img(cone_roi, cone_line, box, 1) 
             for (cone_roi, cone_line, box) in zip(cone_rois, cone_lines, boxes)]
         
         return cone_poses
